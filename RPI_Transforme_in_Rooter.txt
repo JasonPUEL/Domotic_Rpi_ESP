@@ -1,0 +1,64 @@
+#!/bin/bash
+#Init Color pour echo
+NC='\033[0m'              # No Color
+# Regular Colors
+Red='\033[1;31m'          # Red
+Green='\033[1;32m'        # Green
+
+echo "This scripe will turn your RaspberryPi into a WiFi Router!"
+echo "${Red}You will not be able to use your Wifi in recever after this intallation.${NC}"
+read -p "Press any key to continue or CTRL+C" -n1 -s
+echo;
+
+apt install hostapd dnsmasq bridge-utils -y
+
+sudo systemctl stop hostapd
+sudo systemctl stop dnsmasq
+
+cat <<EOF >> /etc/dhcpcd.conf
+interface wlan0
+static ip_address=192.168.0.10/24
+denyinterfaces eth0
+denyinterfaces wlan0
+EOF
+
+mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+cat /etc/dnsmasq.conf < eof
+interface=wlan0
+  dhcp-range=192.168.0.11,192.168.0.30,255.255.255.0,24h
+eof
+
+cat > /etc/hostapd/hostapd.conf << eof
+interface=wlan0
+bridge=br0
+hw_mode=g
+channel=7
+wmm_enabled=0
+macaddr_acl=0
+auth_algs=1
+ignore_broadcast_ssid=0
+wpa=2
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=TKIP
+rsn_pairwise=CCMP
+ssid=BionomeeX
+wpa_passphrase=gertrude
+eof
+
+sed -i -r 's/.*#DAEMON_CONF=””.*/DAEMON_CONF="/etc/hostapd/hostapd.conf"/g' /etc/default/hostapd
+
+sed -i -r 's/.*#net.ipv4.ip_forward=1.*/net.ipv4.ip_forward=1/g' /etc/sysctl.conf
+
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+sh -c "iptables-save > /etc/iptables.ipv4.nat"
+#iptables-restore < /etc/iptables.ipv4.nat
+
+brctl addbr br0
+brctl addif br0 eth0
+cat <<EOF >> /etc/network/interfaces
+auto br0
+iface br0 inet manual
+bridge_ports eth0 wlan0
+EOF
+
+echo 'you need to reboot to apply modification'
