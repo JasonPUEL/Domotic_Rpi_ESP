@@ -8,6 +8,7 @@
 
 Rasp confi rooter :
 https://thepi.io/how-to-use-your-raspberry-pi-as-a-wireless-access-point/
+https://github.com/ccrisan/motioneye/wiki/Install-On-Raspbian
 
 ESP :
 https://www.youtube.com/watch?v=-35Zn2i6Rjc
